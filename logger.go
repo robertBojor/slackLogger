@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 )
@@ -44,10 +46,11 @@ func (sl *SlackLogger) SetError(err error) *SlackLogger {
 	return sl
 }
 
-func (sl *SlackLogger) Notify() {
+func (sl *SlackLogger) Notify(wrapMessage string) {
 	sl.ResponseBytes = make([]byte, 0)
 	sl.ResponseStatus = 0
 	sl.ResponseError = nil
+	sl.Error = errors.Wrap(sl.Error, wrapMessage)
 
 	msg := slack.Message{
 		Msg: slack.Msg{
