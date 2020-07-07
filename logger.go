@@ -21,43 +21,56 @@ type SLOptions struct {
 }
 
 type SlackLogger struct {
-	WebHook        string
-	Channel        string
-	User           string
-	Label          string
-	Error          error
+	webHook        string
+	channel        string
+	user           string
+	label          string
+	error          error
 	ResponseBytes  []byte
 	ResponseStatus int
 	ResponseError  error
 }
 
+// Configure - Configure the logger
 func Configure(options *SLOptions) *SlackLogger {
 	var slackLogger SlackLogger
-	slackLogger.WebHook = options.WebHook
-	slackLogger.Channel = options.Channel
-	slackLogger.User = options.User
-	slackLogger.Label = options.Label
-	slackLogger.Error = nil
+	slackLogger.webHook = options.WebHook
+	slackLogger.channel = options.Channel
+	slackLogger.user = options.User
+	slackLogger.label = options.Label
+	slackLogger.error = nil
 	return &slackLogger
 }
 
+// SetError - Set the error for the logger
 func (sl *SlackLogger) SetError(err error) *SlackLogger {
-	sl.Error = err
+	sl.error = err
 	return sl
 }
 
+// Notify - Send a simple notification with error wrapping
 func (sl *SlackLogger) Notify(wrapMessage string) {
+	sl.error = errors.Wrap(sl.error, wrapMessage)
+	sl.sendNotification()
+}
+
+// Notifyf - Send a notification with error wrapping and formatting
+func (sl *SlackLogger) Notifyf(wrapMessage string, params ...interface{}) {
+	sl.error = errors.Wrapf(sl.error, wrapMessage, params...)
+	sl.sendNotification()
+}
+
+// sendNotification - Send the notification with the computed message
+func (sl *SlackLogger) sendNotification() {
 	sl.ResponseBytes = make([]byte, 0)
 	sl.ResponseStatus = 0
 	sl.ResponseError = nil
-	sl.Error = errors.Wrap(sl.Error, wrapMessage)
-
 	msg := slack.Message{
 		Msg: slack.Msg{
 			Type:    "message",
-			Channel: sl.Channel,
-			User:    sl.User,
-			Text:    fmt.Sprintf("*[%s]* %v", sl.Label, sl.Error),
+			Channel: sl.channel,
+			User:    sl.user,
+			Text:    fmt.Sprintf("*[%s]* %v", sl.label, sl.error),
 		},
 	}
 	msgBytes, err := json.Marshal(msg)
@@ -66,7 +79,7 @@ func (sl *SlackLogger) Notify(wrapMessage string) {
 		return
 	}
 	body := bytes.NewBuffer(msgBytes)
-	request, err := http.NewRequest("POST", sl.WebHook, body)
+	request, err := http.NewRequest("POST", sl.webHook, body)
 	if err != nil {
 		sl.ResponseError = err
 		logrus.Errorf("❌ [SlackLogger:Notify:2] [%v]", err)
