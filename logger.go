@@ -65,12 +65,16 @@ func (sl *SlackLogger) sendNotification() {
 	sl.ResponseBytes = make([]byte, 0)
 	sl.ResponseStatus = 0
 	sl.ResponseError = nil
+	messageLabel := ""
+	if sl.label != "" {
+		messageLabel = fmt.Sprintf("*[%s]* ", sl.label)
+	}
 	msg := slack.Message{
 		Msg: slack.Msg{
 			Type:    "message",
 			Channel: sl.channel,
 			User:    sl.user,
-			Text:    fmt.Sprintf("*[%s]* %v", sl.label, sl.error),
+			Text:    fmt.Sprintf("%s%v", messageLabel, sl.error),
 		},
 	}
 	msgBytes, err := json.Marshal(msg)
