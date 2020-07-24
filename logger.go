@@ -62,6 +62,12 @@ func (sl *SlackLogger) SetError(err error) *SlackLogger {
 	return sl
 }
 
+func (sl *SlackLogger) SetMessage(message string) *SlackLogger {
+	sl.error = errors.New(message)
+	sl.severity = None
+	return sl
+}
+
 func (sl *SlackLogger) Severity(severity SLSeverity) *SlackLogger {
 	sl.severity = severity
 	return sl
