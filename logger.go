@@ -140,30 +140,45 @@ func (sl *SlackLogger) sendNotification() {
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
-				Text: fmt.Sprintf("*[%s]*: %s", messageLabel, sl.wrap),
+				Text: fmt.Sprintf("*Location*\n%s\n\n", messageLabel),
 			},
+		}, slackBlock{
+			Type: "divider",
 		}, slackBlock{
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
-				Text: fmt.Sprintf("*Severity*: %s", sl.getSeverityString()),
+				Text: fmt.Sprintf("*Severity*\n%s\n\n", sl.getSeverityString()),
 			},
+		}, slackBlock{
+			Type: "divider",
 		}, slackBlock{
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
-				Text: fmt.Sprintf("*Error*: %s", sl.error.Error()),
+				Text: fmt.Sprintf("*Message*\n%s\n\n", sl.wrap),
+			},
+		}, slackBlock{
+			Type: "divider",
+		}, slackBlock{
+			Type: "section",
+			Text: slackBlockText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Data*\n%s\n\n", sl.error.Error()),
 			},
 		})
 
 	if sl.attachment != "" {
-		msg.Blocks = append(msg.Blocks, slackBlock{
-			Type: "section",
-			Text: slackBlockText{
-				Type: "mrkdwn",
-				Text: fmt.Sprintf("*Additional Data*\n\n%s", sl.attachment),
-			},
-		})
+		msg.Blocks = append(msg.Blocks,
+			slackBlock{
+				Type: "divider",
+			}, slackBlock{
+				Type: "section",
+				Text: slackBlockText{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("*Additional Data*\n%s\n\n", sl.attachment),
+				},
+			})
 		sl.attachment = ""
 	}
 	msgBytes, err := json.Marshal(msg)
