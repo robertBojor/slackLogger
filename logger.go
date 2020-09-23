@@ -29,6 +29,7 @@ type SlackLogger struct {
 	wrap           string
 	error          error
 	severity       SLSeverity
+	RequestBytes   []byte
 	ResponseBytes  []byte
 	ResponseStatus int
 	ResponseError  error
@@ -185,6 +186,7 @@ func (sl *SlackLogger) sendNotification() {
 		logrus.Errorf("❌ [SlackLogger:Notify:1] [%v]", err)
 		return
 	}
+	sl.RequestBytes = msgBytes
 	body := bytes.NewBuffer(msgBytes)
 	request, err := http.NewRequest("POST", sl.webHook, body)
 	if err != nil {
