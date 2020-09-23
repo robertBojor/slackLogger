@@ -8,9 +8,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
-	"github.com/slack-go/slack"
 )
 
 type SLSeverity string
@@ -27,11 +25,26 @@ type SlackLogger struct {
 	channel        string
 	user           string
 	label          string
+	attachment     string
+	wrap           string
 	error          error
 	severity       SLSeverity
 	ResponseBytes  []byte
 	ResponseStatus int
 	ResponseError  error
+}
+
+type slackMessage struct {
+	Text   string       `json:"text"`
+	Blocks []slackBlock `json:"blocks"`
+}
+type slackBlock struct {
+	Type string         `json:"type"`
+	Text slackBlockText `json:"text"`
+}
+type slackBlockText struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
 }
 
 const (
@@ -75,18 +88,19 @@ func (sl *SlackLogger) Severity(severity SLSeverity) *SlackLogger {
 
 // Notify - Send a simple notification with error wrapping
 func (sl *SlackLogger) Notify(wrapMessage string) {
-	severityString := sl.getSeverityString()
-	wrap := fmt.Sprintf("%s%s", severityString, wrapMessage)
-	sl.error = errors.Wrap(sl.error, wrap)
+	sl.wrap = wrapMessage
 	sl.sendNotification()
 }
 
 // Notifyf - Send a notification with error wrapping and formatting
 func (sl *SlackLogger) Notifyf(wrapMessage string, params ...interface{}) {
-	severityString := sl.getSeverityString()
-	wrap := fmt.Sprintf("%s%s", severityString, wrapMessage)
-	sl.error = errors.Wrapf(sl.error, wrap, params...)
+	sl.error = errors.Wrapf(sl.error, wrapMessage, params...)
+	sl.wrap = wrapMessage
 	sl.sendNotification()
+}
+
+func (sl *SlackLogger) SetAttachment(attachment string) {
+	sl.attachment = attachment
 }
 
 // getSeverityString - Get the appropriate prefix for the wrap message
@@ -118,13 +132,39 @@ func (sl *SlackLogger) sendNotification() {
 	if sl.label != "" {
 		messageLabel = fmt.Sprintf("*[%s]* ", sl.label)
 	}
-	msg := slack.Message{
-		Msg: slack.Msg{
-			Type:    "message",
-			Channel: sl.channel,
-			User:    sl.user,
-			Text:    fmt.Sprintf("%s%v", messageLabel, sl.error),
-		},
+	var msg slackMessage
+	msg.Blocks = make([]slackBlock, 0)
+	//Add the message label
+	msg.Blocks = append(msg.Blocks,
+		slackBlock{
+			Type: "section",
+			Text: slackBlockText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*[%s]*: %s", messageLabel, sl.wrap),
+			},
+		}, slackBlock{
+			Type: "section",
+			Text: slackBlockText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Severity*: %s", sl.getSeverityString()),
+			},
+		}, slackBlock{
+			Type: "section",
+			Text: slackBlockText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Error*: %s", sl.error.Error()),
+			},
+		})
+
+	if sl.attachment != "" {
+		msg.Blocks = append(msg.Blocks, slackBlock{
+			Type: "section",
+			Text: slackBlockText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Additional Data*\n\n%s", sl.attachment),
+			},
+		})
+		sl.attachment = ""
 	}
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
