@@ -35,16 +35,16 @@ type SlackLogger struct {
 }
 
 type slackMessage struct {
-	Text   string       `json:"text"`
-	Blocks []slackBlock `json:"blocks"`
+	Text   string       `json:"text,omitempty"`
+	Blocks []slackBlock `json:"blocks,omitempty"`
 }
 type slackBlock struct {
-	Type string         `json:"type"`
-	Text slackBlockText `json:"text"`
+	Type string         `json:"type,omitempty"`
+	Text slackBlockText `json:"text,omitempty"`
 }
 type slackBlockText struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type string `json:"type,omitempty"`
+	Text string `json:"text,omitempty"`
 }
 
 const (
@@ -142,25 +142,25 @@ func (sl *SlackLogger) sendNotification() {
 				Type: "mrkdwn",
 				Text: fmt.Sprintf("*Location*\n%s\n\n", messageLabel),
 			},
-		}, slackBlock{
-			Type: "divider",
-		}, slackBlock{
+		},
+		slackBlock{Type: "divider"},
+		slackBlock{
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
 				Text: fmt.Sprintf("*Severity*\n%s\n\n", sl.getSeverityString()),
 			},
-		}, slackBlock{
-			Type: "divider",
-		}, slackBlock{
+		},
+		slackBlock{Type: "divider"},
+		slackBlock{
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
 				Text: fmt.Sprintf("*Message*\n%s\n\n", sl.wrap),
 			},
-		}, slackBlock{
-			Type: "divider",
-		}, slackBlock{
+		},
+		slackBlock{Type: "divider"},
+		slackBlock{
 			Type: "section",
 			Text: slackBlockText{
 				Type: "mrkdwn",
@@ -170,9 +170,8 @@ func (sl *SlackLogger) sendNotification() {
 
 	if sl.attachment != "" {
 		msg.Blocks = append(msg.Blocks,
+			slackBlock{Type: "divider"},
 			slackBlock{
-				Type: "divider",
-			}, slackBlock{
 				Type: "section",
 				Text: slackBlockText{
 					Type: "mrkdwn",
